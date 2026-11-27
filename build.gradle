@@ -1,0 +1,84 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'idea'
+    id 'eclipse'
+}
+
+group = 'com.licel.stringer'
+version = '9.1.15'
+
+def javaVersion = 17
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.ow2.asm:asm:9.11.1'
+    implementation 'org.ow2.asm:asm-commons:9.11.1'
+    implementation 'org.apache.commons:commons-jexl3:3.3'
+    implementation 'commons-io:commons-io:2.18.0'
+    implementation 'org.zeroturnaround:zt-zip:1.17'
+    implementation 'org.slf4j:slf4j-simple:1.7.36'
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.80'
+    implementation 'org.bouncycastle:bcpkix-jdk18on:1.80'
+    compileOnly 'org.apache.ant:ant:1.10.15'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(javaVersion)
+    }
+    withSourcesJar()
+}
+
+application {
+    applicationName = 'OpenStringer'
+    mainClass = 'com.licel.stringer.ConsoleTask'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = javaVersion
+    options.encoding = 'UTF-8'
+    options.compilerArgs += ['-parameters', '-Xlint:none', '-Xmaxerrs', '4096']
+}
+
+tasks.withType(JavaExec).configureEach {
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(javaVersion)
+    }
+}
+
+tasks.withType(AbstractArchiveTask).configureEach {
+    preserveFileTimestamps = false
+    reproducibleFileOrder = true
+}
+
+tasks.named('jar', Jar) {
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    manifest {
+        attributes(
+                'Main-Class': 'com.licel.stringer.ConsoleTask',
+                'Implementation-Title': 'OpenStringer',
+                'Implementation-Version': project.version)
+    }
+    exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA', 'META-INF/versions/**'
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}
+
+eclipse {
+    classpath {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}
